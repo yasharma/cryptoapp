@@ -1,38 +1,46 @@
-/* global axios */
 import React, {Component} from 'react';
 import ReactHighcharts from 'react-highcharts';
-import {config} from './config';
-import {Button } from 'reactstrap';
+import { config } from './config';
+import { Button } from 'reactstrap';
+import { connect } from 'react-redux';
+import { MARKET_DATA_REQUEST } from '../../actions';
+
 class Crypto extends Component {
     constructor() {
         super();
         this.state = {
-            marketData: []
+            requesting: false
         }
         this.marketData = this.marketData.bind(this);
     }
     componentDidMount() {
-        // let chart = this.refs.chart.getChart();
-        console.log(this.refs)
         this.marketData();
         
     }
     marketData() {
-        axios.get('https://api.cryptonator.com/api/full/btc-usd')
-            .then(({data}) => {
-                if(data && data.ticker.markets.length > 0) {
-                    this.setState({marketData: data.ticker.markets.map(x => ({market: x.market, y: Number(x.price)}))});
+        const {dispatch} = this.props;
+        this.setState({requesting: true});
+        return new Promise((resolve, reject) => {
+            dispatch({
+                type: MARKET_DATA_REQUEST,
+                callbackError: (error) => {
+                    alert(error.message);
+                    console.error(error);
+                    this.setState({requesting: false});
+                    reject(error);
+                },
+                callbackSuccess: () => {
+                    this.setState({requesting: false});
+                    resolve();
                 }
             })
-            .catch(error => {
-                alert(error.message);
-                console.error(error);
-            })
+        });
     }
     render() {
-        const {marketData} = this.state;
-        if(marketData.length > 0) {
-            config.series[0].data = marketData
+        const {market} = this.props;
+        const {requesting} = this.state;
+        if(market && market.length > 0) {
+            config.series[0].data = market
             return (
                 <div>
                     <ReactHighcharts neverReflow={true} config = {config} ref="chart"></ReactHighcharts>
@@ -40,10 +48,19 @@ class Crypto extends Component {
                 </div>    
             );
         } else {
-            return (<div> Please wait .... </div>);
+            if(requesting) {
+                return (<div> Please wait .... </div>);
+            } else {
+                return (<div> No market data found </div>);
+            }
         }
-        
     }
 };
 
-export default Crypto;
+const mapStateToProps = (state) => {
+    return {
+        market: state.market.data
+    }
+}
+  
+  export default connect(mapStateToProps)(Crypto);

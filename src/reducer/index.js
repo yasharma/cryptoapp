@@ -1,13 +1,20 @@
 import { combineReducers } from 'redux'
 import { routerReducer } from 'react-router-redux';
 import { reducer as formReducer } from 'redux-form';
+import { MARKET_DATA } from '../actions';
 
-export const authorize = (email, password) => ({
-  	type: 'AUTH_REQUEST',
-  	payload: { email, password }
-});
+const marketReducer = (state = {}, {type, payload}) => {
+	switch (type) {
+		case MARKET_DATA: {
+			return {...state, data: payload}
+		}
+		default: 
+			return state;
+	}
+}
 
 const rootReducer = combineReducers({
+	market: marketReducer,
 	router: routerReducer,
 	form: formReducer
 });
